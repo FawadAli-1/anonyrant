@@ -1,7 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-// Get the API URL from environment variable, ensuring it doesn't end with a slash
-const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') || 'http://localhost:3001';
+// Get the API URL from environment variable or use the Railway URL
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://anonyrant-backend-production.up.railway.app';
 
 console.log('API URL configured as:', apiUrl);
 
