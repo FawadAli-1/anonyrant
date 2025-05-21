@@ -13,6 +13,15 @@ interface CreateRantDialogProps {
   onRantCreated?: () => void
 }
 
+// Initial reactions for new rants
+const initialReactions = [
+  { type: "empathy", count: 0, reacted: false },
+  { type: "support", count: 0, reacted: false },
+  { type: "hug", count: 0, reacted: false },
+  { type: "angry", count: 0, reacted: false },
+  { type: "sad", count: 0, reacted: false }
+] as const
+
 export function CreateRantDialog({ open, onOpenChange, onRantCreated }: CreateRantDialogProps) {
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
@@ -40,8 +49,7 @@ export function CreateRantDialog({ open, onOpenChange, onRantCreated }: CreateRa
       setContent("")
       onOpenChange(false)
       onRantCreated?.()
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } }
+    } catch (err: any) {
       setError(err.response?.data?.message || "Failed to create rant")
     } finally {
       setIsSubmitting(false)

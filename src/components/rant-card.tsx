@@ -122,8 +122,7 @@ export function RantCard({ id, title, content, createdAt, comments: initialComme
       })
 
       // No need to call onUpdate since we've already updated the UI
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } }
+    } catch (err: any) {
       setError(err.response?.data?.message || "Failed to update reaction")
       // Revert the optimistic update on error
       onUpdate?.()
@@ -159,8 +158,7 @@ export function RantCard({ id, title, content, createdAt, comments: initialComme
       // Fetch latest comments to get the real comment ID and any other updates
       const response = await apiClient.comments.getByRantId(id)
       setComments(response.data)
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } }
+    } catch (err: any) {
       setError(err.response?.data?.message || "Failed to post comment")
       // Revert optimistic update on error
       onUpdate?.()
