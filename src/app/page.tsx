@@ -26,7 +26,7 @@ interface Rant {
   }>
 }
 
-export default function Home() {
+export default function Page() {
   const [isCreateRantOpen, setIsCreateRantOpen] = useState(false)
   const [isRandomRantOpen, setIsRandomRantOpen] = useState(false)
   const [randomRant, setRandomRant] = useState<Rant | null>(null)
