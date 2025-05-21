@@ -1,13 +1,10 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-// Get the API URL from environment variable or use the Railway URL
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://anonyrant-backend-production.up.railway.app';
-
-console.log('API URL configured as:', apiUrl);
+const RAILWAY_URL = 'https://anonyrant-backend-production.up.railway.app';
 
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: `${apiUrl}/api`,
+  baseURL: RAILWAY_URL + '/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -21,7 +18,11 @@ interface ErrorResponse {
 // Add request interceptor for logging
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    console.log('Making request to:', `${config.baseURL || ''}${config.url || ''}`);
+    // Ensure the URL is absolute
+    if (config.url && !config.url.startsWith('http')) {
+      config.url = RAILWAY_URL + '/api' + config.url;
+    }
+    console.log('Making request to:', config.url);
     console.log('Request data:', config.data);
     return config;
   },
