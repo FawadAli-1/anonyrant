@@ -1,12 +1,30 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
+
+// Get the API URL from environment variable, ensuring it doesn't end with a slash
+const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') || 'http://localhost:3001';
 
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api',
+  baseURL: `${apiUrl}/api`,
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+// Add response interceptor for better error handling
+api.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError) => {
+    // Extract the most relevant error message
+    const message = 
+      (error.response?.data as any)?.message || 
+      (error.response?.data as any)?.error || 
+      error.message || 
+      'An unexpected error occurred';
+    
+    return Promise.reject(new Error(message));
+  }
+);
 
 export enum ReactionType {
   EMPATHY = 'EMPATHY',
