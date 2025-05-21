@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { CreateRantDialog } from "@/components/create-rant-dialog"
@@ -39,7 +39,7 @@ export default function Page() {
     sortOrder: 'desc',
   })
 
-  const fetchRants = async () => {
+  const fetchRants = useCallback(async () => {
     try {
       setIsLoading(true)
       const response = await apiClient.rants.getAll(searchParams)
@@ -49,7 +49,7 @@ export default function Page() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [searchParams])
 
   const fetchRandomRant = async () => {
     try {
@@ -73,7 +73,7 @@ export default function Page() {
 
   useEffect(() => {
     fetchRants()
-  }, [searchParams])
+  }, [fetchRants])
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-blue-950 dark:to-slate-900">

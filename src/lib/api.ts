@@ -11,14 +11,19 @@ const api = axios.create({
   },
 });
 
+interface ErrorResponse {
+  message?: string;
+  error?: string;
+}
+
 // Add response interceptor for better error handling
 api.interceptors.response.use(
   (response) => response,
-  (error: AxiosError) => {
+  (error: AxiosError<ErrorResponse>) => {
     // Extract the most relevant error message
     const message = 
-      (error.response?.data as any)?.message || 
-      (error.response?.data as any)?.error || 
+      error.response?.data?.message || 
+      error.response?.data?.error || 
       error.message || 
       'An unexpected error occurred';
     
