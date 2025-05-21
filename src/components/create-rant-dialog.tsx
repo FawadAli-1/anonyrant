@@ -29,20 +29,11 @@ export function CreateRantDialog({ open, onOpenChange, onRantCreated }: CreateRa
         `user_${Math.random().toString(36).slice(2)}`
       localStorage.setItem('anonymousId', anonymousId)
 
-      console.log('Creating rant with:', {
-        title,
-        content,
-        anonymousId,
-        apiUrl: process.env.NEXT_PUBLIC_API_URL
-      });
-
-      const response = await apiClient.rants.create({
+      await apiClient.rants.create({
         title,
         content,
         anonymousId,
       })
-
-      console.log('Rant created successfully:', response.data);
 
       // Reset form and close dialog
       setTitle("")
@@ -50,12 +41,8 @@ export function CreateRantDialog({ open, onOpenChange, onRantCreated }: CreateRa
       onOpenChange(false)
       onRantCreated?.()
     } catch (error: unknown) {
-      console.error('Failed to create rant:', error);
-      const err = error as { response?: { data?: { message?: string }, status?: number, statusText?: string } }
-      const errorMessage = err.response?.data?.message || 
-                         `Error ${err.response?.status}: ${err.response?.statusText}` ||
-                         "Failed to create rant. Please check your connection and try again."
-      setError(errorMessage)
+      const err = error as { response?: { data?: { message?: string } } }
+      setError(err.response?.data?.message || "Failed to create rant")
     } finally {
       setIsSubmitting(false)
     }
@@ -87,9 +74,7 @@ export function CreateRantDialog({ open, onOpenChange, onRantCreated }: CreateRa
           </div>
 
           {error && (
-            <div className="p-3 rounded bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-            </div>
+            <p className="text-sm text-red-500">{error}</p>
           )}
         </div>
 

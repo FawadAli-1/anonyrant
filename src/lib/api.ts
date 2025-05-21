@@ -1,68 +1,12 @@
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-
-const RAILWAY_URL = 'https://anonyrant-backend-production.up.railway.app';
+import axios from 'axios';
 
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: RAILWAY_URL + '/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
   headers: {
     'Content-Type': 'application/json',
   },
 });
-
-interface ErrorResponse {
-  message?: string;
-  error?: string;
-}
-
-// Add request interceptor for logging
-api.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    // Ensure the URL is absolute
-    if (config.url && !config.url.startsWith('http')) {
-      config.url = RAILWAY_URL + '/api' + config.url;
-    }
-    console.log('Making request to:', config.url);
-    console.log('Request data:', config.data);
-    return config;
-  },
-  (error) => {
-    console.error('Request error:', error);
-    return Promise.reject(error);
-  }
-);
-
-// Add response interceptor for better error handling
-api.interceptors.response.use(
-  (response) => {
-    console.log('Response received:', {
-      status: response.status,
-      data: response.data,
-    });
-    return response;
-  },
-  (error: AxiosError<ErrorResponse>) => {
-    console.error('Response error:', {
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      config: {
-        url: error.config?.url,
-        method: error.config?.method,
-        baseURL: error.config?.baseURL,
-      }
-    });
-
-    // Extract the most relevant error message
-    const message = 
-      error.response?.data?.message || 
-      error.response?.data?.error || 
-      `${error.response?.status || 'Error'}: ${error.response?.statusText || error.message}` || 
-      'An unexpected error occurred';
-    
-    return Promise.reject(new Error(message));
-  }
-);
 
 export enum ReactionType {
   EMPATHY = 'EMPATHY',
