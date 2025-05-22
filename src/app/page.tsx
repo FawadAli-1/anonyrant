@@ -43,6 +43,7 @@ export default function Home() {
     try {
       setIsLoading(true)
       const response = await apiClient.rants.getAll(searchParams)
+      console.log(response)
       setRants(response.data)
     } catch (error) {
       console.error('Failed to fetch rants:', error)
