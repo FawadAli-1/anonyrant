@@ -32,9 +32,9 @@ export function CreateRantDialog({ open, onOpenChange, onRantCreated }: CreateRa
     try {
       setError("")
       setIsSubmitting(true)
-      
+
       // Generate or get anonymousId (you might want to store this in localStorage or similar)
-      const anonymousId = localStorage.getItem('anonymousId') || 
+      const anonymousId = localStorage.getItem('anonymousId') ||
         `user_${Math.random().toString(36).slice(2)}`
       localStorage.setItem('anonymousId', anonymousId)
 
@@ -49,8 +49,11 @@ export function CreateRantDialog({ open, onOpenChange, onRantCreated }: CreateRa
       setContent("")
       onOpenChange(false)
       onRantCreated?.()
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to create rant")
+    } catch (err: unknown) {
+      setError(
+        (err instanceof Error) ? err.message
+          : "Failed to create rant"
+      )
     } finally {
       setIsSubmitting(false)
     }
@@ -87,15 +90,15 @@ export function CreateRantDialog({ open, onOpenChange, onRantCreated }: CreateRa
         </div>
 
         <DialogFooter className="mt-4">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
             className="border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/50 cursor-pointer"
           >
             Cancel
           </Button>
-          <Button 
+          <Button
             onClick={handleSubmit}
             disabled={isSubmitting || !title.trim() || !content.trim()}
             className="bg-blue-600 hover:bg-blue-500 text-white cursor-pointer"

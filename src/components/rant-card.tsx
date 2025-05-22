@@ -86,8 +86,8 @@ export function RantCard({ id, title, content, createdAt, comments: initialComme
   const [error, setError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const anonymousId = typeof window !== 'undefined' ? 
-    localStorage.getItem('anonymousId') || 
+  const anonymousId = typeof window !== 'undefined' ?
+    localStorage.getItem('anonymousId') ||
     `user_${Math.random().toString(36).slice(2)}` : ''
 
   if (typeof window !== 'undefined') {
@@ -97,10 +97,10 @@ export function RantCard({ id, title, content, createdAt, comments: initialComme
   const handleReaction = async (type: ReactionType) => {
     try {
       setError("")
-      
+
       // Optimistically update the UI
       const hasReactionAlready = reactions.some(r => r.type === type && r.anonymousId === anonymousId)
-      
+
       if (hasReactionAlready) {
         // Remove the reaction optimistically
         setReactions(prev => prev.filter(r => !(r.type === type && r.anonymousId === anonymousId)))
@@ -122,9 +122,11 @@ export function RantCard({ id, title, content, createdAt, comments: initialComme
       })
 
       // No need to call onUpdate since we've already updated the UI
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to update reaction")
-      // Revert the optimistic update on error
+    } catch (err: unknown) {
+      setError(
+        (err instanceof Error) ? err.message
+          : "Failed to update reaction"
+      )
       onUpdate?.()
     }
   }
@@ -135,7 +137,7 @@ export function RantCard({ id, title, content, createdAt, comments: initialComme
     try {
       setError("")
       setIsSubmitting(true)
-      
+
       // Create a temporary comment for optimistic update
       const tempComment: Comment = {
         id: `temp_${Date.now()}`,
@@ -158,9 +160,11 @@ export function RantCard({ id, title, content, createdAt, comments: initialComme
       // Fetch latest comments to get the real comment ID and any other updates
       const response = await apiClient.comments.getByRantId(id)
       setComments(response.data)
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to post comment")
-      // Revert optimistic update on error
+    } catch (err: unknown) {
+      setError(
+        (err instanceof Error) ? err.message
+          : "Failed to post comment"
+      )
       onUpdate?.()
     } finally {
       setIsSubmitting(false)
@@ -183,7 +187,7 @@ export function RantCard({ id, title, content, createdAt, comments: initialComme
       </CardHeader>
       <CardContent>
         <p className="text-sm text-slate-600 dark:text-slate-300">{content}</p>
-        
+
         {showComments && comments.length > 0 && (
           <div className="mt-4 space-y-3">
             {comments.map(comment => (
@@ -257,15 +261,15 @@ export function RantCard({ id, title, content, createdAt, comments: initialComme
             className="min-h-[100px] mt-2 bg-white dark:bg-slate-800 border-blue-200 dark:border-blue-800 focus:ring-blue-500"
           />
           <DialogFooter className="mt-4">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setIsCommenting(false)}
               disabled={isSubmitting}
               className="border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/50 cursor-pointer"
             >
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleComment}
               disabled={isSubmitting || !commentContent.trim()}
               className="bg-blue-600 hover:bg-blue-500 text-white cursor-pointer"
