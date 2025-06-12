@@ -2,23 +2,9 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
-import { cn } from "@/lib/utils"
 import { apiClient, ReactionType } from "@/lib/api"
-
-interface Comment {
-  id: string
-  content: string
-  createdAt: string
-}
-
-interface Reaction {
-  id: string
-  type: ReactionType
-  anonymousId: string
-}
+import { Heart, MessageCircle, ThumbsUp, ThumbsDown, Smile, Frown } from "lucide-react"
 
 interface RantCardProps {
   id: string
@@ -35,250 +21,191 @@ interface RantCardProps {
     type: ReactionType
     anonymousId: string
   }>
-  onUpdate?: () => void
+  onUpdate: () => void
 }
 
-const reactionStyles = {
-  [ReactionType.EMPATHY]: {
-    active: "bg-pink-100 text-pink-700 hover:bg-pink-200 dark:bg-pink-900/30 dark:text-pink-300",
-    icon: "❤️"
-  },
-  [ReactionType.SUPPORT]: {
-    active: "bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300",
-    icon: "💪"
-  },
-  [ReactionType.HUG]: {
-    active: "bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300",
-    icon: "🤗"
-  },
-  [ReactionType.ANGRY]: {
-    active: "bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300",
-    icon: "😡"
-  },
-  [ReactionType.SAD]: {
-    active: "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-900/30 dark:text-slate-300",
-    icon: "😢"
-  }
-} as const
+const reactionIcons = {
+  [ReactionType.EMPATHY]: <Heart className="w-4 h-4" />,
+  [ReactionType.SUPPORT]: <ThumbsUp className="w-4 h-4" />,
+  [ReactionType.HUG]: <Smile className="w-4 h-4" />,
+  [ReactionType.ANGRY]: <ThumbsDown className="w-4 h-4" />,
+  [ReactionType.SAD]: <Frown className="w-4 h-4" />,
+}
 
 function formatRelativeTime(dateString: string) {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
 
-  if (diffInMinutes < 1) {
-    return 'just now';
-  } else if (diffInMinutes < 60) {
-    return `${diffInMinutes}m ago`;
-  } else {
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `Today at ${hours}:${minutes}`;
+  if (diffInSeconds < 60) {
+    return 'just now'
   }
+
+  const diffInMinutes = Math.floor(diffInSeconds / 60)
+  if (diffInMinutes < 60) {
+    return `${diffInMinutes}m ago`
+  }
+
+  const diffInHours = Math.floor(diffInMinutes / 60)
+  if (diffInHours < 24) {
+    return `${diffInHours}h ago`
+  }
+
+  const diffInDays = Math.floor(diffInHours / 24)
+  if (diffInDays < 7) {
+    return `${diffInDays}d ago`
+  }
+
+  const diffInWeeks = Math.floor(diffInDays / 7)
+  if (diffInWeeks < 4) {
+    return `${diffInWeeks}w ago`
+  }
+
+  const diffInMonths = Math.floor(diffInDays / 30)
+  if (diffInMonths < 12) {
+    return `${diffInMonths}mo ago`
+  }
+
+  const diffInYears = Math.floor(diffInDays / 365)
+  return `${diffInYears}y ago`
 }
 
-export function RantCard({ id, title, content, createdAt, comments: initialComments, reactions: initialReactions, onUpdate }: RantCardProps) {
-  const [isCommenting, setIsCommenting] = useState(false)
-  const [commentContent, setCommentContent] = useState("")
-  const [comments, setComments] = useState<Comment[]>(initialComments)
-  const [reactions, setReactions] = useState<Reaction[]>(initialReactions)
-  const [showComments, setShowComments] = useState(false)
-  const [error, setError] = useState("")
+export function RantCard({ id, title, content, createdAt, comments, reactions, onUpdate }: RantCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [newComment, setNewComment] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const anonymousId = typeof window !== 'undefined' ?
-    localStorage.getItem('anonymousId') ||
-    `user_${Math.random().toString(36).slice(2)}` : ''
-
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('anonymousId', anonymousId)
-  }
+  const [error, setError] = useState<string | null>(null)
 
   const handleReaction = async (type: ReactionType) => {
     try {
-      setError("")
-
-      // Optimistically update the UI
-      const hasReactionAlready = reactions.some(r => r.type === type && r.anonymousId === anonymousId)
-
-      if (hasReactionAlready) {
-        // Remove the reaction optimistically
-        setReactions(prev => prev.filter(r => !(r.type === type && r.anonymousId === anonymousId)))
-      } else {
-        // Add the reaction optimistically
-        const newReaction: Reaction = {
-          id: `temp_${Date.now()}`, // Temporary ID
-          type,
-          anonymousId
-        }
-        setReactions(prev => [...prev, newReaction])
-      }
-
-      // Make API call
       await apiClient.reactions.toggle({
         type,
-        anonymousId,
         rantId: id,
+        anonymousId: localStorage.getItem('anonymousId') || `user_${Math.random().toString(36).slice(2)}`
       })
-
-      // No need to call onUpdate since we've already updated the UI
-    } catch (err: unknown) {
-      setError(
-        (err instanceof Error) ? err.message
-          : "Failed to update reaction"
-      )
-      onUpdate?.()
+      onUpdate()
+    } catch (error) {
+      console.error('Failed to add reaction:', error)
     }
   }
 
   const handleComment = async () => {
-    if (!commentContent.trim()) return
+    if (!newComment.trim()) return
 
     try {
-      setError("")
       setIsSubmitting(true)
-
-      // Create a temporary comment for optimistic update
-      const tempComment: Comment = {
-        id: `temp_${Date.now()}`,
-        content: commentContent,
-        createdAt: new Date().toISOString()
-      }
-
-      // Update UI optimistically
-      setComments(prev => [tempComment, ...prev])
-      setCommentContent("")
-      setIsCommenting(false)
-
-      // Make API call
+      setError(null)
       await apiClient.comments.create({
-        content: tempComment.content,
-        anonymousId,
+        content: newComment,
         rantId: id,
+        anonymousId: localStorage.getItem('anonymousId') || `user_${Math.random().toString(36).slice(2)}`
       })
-
-      // Fetch latest comments to get the real comment ID and any other updates
-      const response = await apiClient.comments.getByRantId(id)
-      setComments(response.data)
-    } catch (err: unknown) {
-      setError(
-        (err instanceof Error) ? err.message
-          : "Failed to post comment"
-      )
-      onUpdate?.()
+      setNewComment("")
+      onUpdate()
+    } catch (error) {
+      setError("Failed to add comment")
+      console.error('Failed to add comment:', error)
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  const getReactionCount = (type: ReactionType) => {
-    return reactions.filter(r => r.type === type).length
-  }
+  const reactionCounts = reactions.reduce((acc, reaction) => {
+    acc[reaction.type] = (acc[reaction.type] || 0) + 1
+    return acc
+  }, {} as Record<ReactionType, number>)
 
   const hasReacted = (type: ReactionType) => {
+    const anonymousId = localStorage.getItem('anonymousId')
     return reactions.some(r => r.type === type && r.anonymousId === anonymousId)
   }
 
   return (
-    <Card className="hover:shadow-lg transition-shadow bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-blue-100 dark:border-blue-900">
-      <CardHeader>
-        <CardTitle className="text-lg text-blue-900 dark:text-blue-100">{title}</CardTitle>
-        <CardDescription className="text-blue-600 dark:text-blue-400">{formatRelativeTime(createdAt)}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-slate-600 dark:text-slate-300">{content}</p>
+    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-blue-100 dark:border-blue-900 overflow-hidden transition-all duration-300 hover:shadow-md">
+      <div className="p-4 sm:p-6">
+        <div className="flex justify-between items-start gap-4">
+          <h3 className="text-lg sm:text-xl font-semibold text-blue-900 dark:text-blue-100 line-clamp-2">
+            {title}
+          </h3>
+          <span className="text-sm text-blue-600 dark:text-blue-400 whitespace-nowrap">
+            {formatRelativeTime(createdAt)}
+          </span>
+        </div>
+        
+        <p className="mt-2 text-blue-800 dark:text-blue-200 line-clamp-3 sm:line-clamp-none">
+          {content}
+        </p>
 
-        {showComments && comments.length > 0 && (
-          <div className="mt-4 space-y-3">
-            {comments.map(comment => (
-              <div key={comment.id} className="bg-blue-50/50 dark:bg-blue-950/50 p-3 rounded-lg border border-blue-100 dark:border-blue-900">
-                <p className="text-sm text-slate-600 dark:text-slate-300">{comment.content}</p>
-                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                  {formatRelativeTime(comment.createdAt)}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {Object.values(ReactionType).map((type) => (
+            <Button
+              key={type}
+              variant="ghost"
+              size="sm"
+              onClick={() => handleReaction(type)}
+              className={`flex items-center gap-1.5 px-2 py-1 text-sm rounded-full transition-all duration-200 ${
+                hasReacted(type)
+                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                  : 'hover:bg-blue-50 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+              }`}
+            >
+              {reactionIcons[type]}
+              <span>{reactionCounts[type] || 0}</span>
+            </Button>
+          ))}
+        </div>
 
-        {error && (
-          <p className="text-sm text-red-500 mt-2">{error}</p>
-        )}
-      </CardContent>
-      <CardFooter className="flex flex-col gap-2">
-        <div className="flex justify-between w-full">
-          <div className="flex gap-2 flex-wrap">
-            {Object.values(ReactionType).map((type) => (
-              <Button
-                key={type}
-                variant="ghost"
-                size="sm"
-                onClick={() => handleReaction(type)}
-                className={cn(
-                  "transition-colors duration-200 cursor-pointer",
-                  hasReacted(type) ? reactionStyles[type].active : "hover:bg-blue-50 dark:hover:bg-blue-900/50"
-                )}
-              >
-                <span className="mr-1">{reactionStyles[type].icon}</span>
-                <span className={cn(
-                  "font-medium",
-                  hasReacted(type) && "animate-bounce"
-                )}>{getReactionCount(type)}</span>
-              </Button>
-            ))}
-          </div>
+        <div className="mt-4">
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setShowComments(!showComments)}
-            className={cn(
-              "hover:bg-blue-50 dark:hover:bg-blue-900/50 cursor-pointer",
-              showComments && "bg-blue-50 dark:bg-blue-900/50"
-            )}
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/50"
           >
-            💭 {comments.length} Comments
+            <MessageCircle className="w-4 h-4" />
+            <span>{comments.length} {comments.length === 1 ? 'comment' : 'comments'}</span>
           </Button>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 cursor-pointer"
-          onClick={() => setIsCommenting(true)}
-        >
-          Add a comment
-        </Button>
-      </CardFooter>
 
-      <Dialog open={isCommenting} onOpenChange={setIsCommenting}>
-        <DialogContent className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-blue-100 dark:border-blue-900">
-          <DialogHeader>
-            <DialogTitle className="text-blue-900 dark:text-blue-100">Add Your Comment</DialogTitle>
-          </DialogHeader>
-          <Textarea
-            placeholder="Share your thoughts..."
-            value={commentContent}
-            onChange={(e) => setCommentContent(e.target.value)}
-            className="min-h-[100px] mt-2 bg-white dark:bg-slate-800 border-blue-200 dark:border-blue-800 focus:ring-blue-500"
-          />
-          <DialogFooter className="mt-4">
-            <Button
-              variant="outline"
-              onClick={() => setIsCommenting(false)}
-              disabled={isSubmitting}
-              className="border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/50 cursor-pointer"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleComment}
-              disabled={isSubmitting || !commentContent.trim()}
-              className="bg-blue-600 hover:bg-blue-500 text-white cursor-pointer"
-            >
-              {isSubmitting ? "Posting..." : "Post Comment"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </Card>
+        {isExpanded && (
+          <div className="mt-4 space-y-4">
+            <div className="space-y-3">
+              {comments.map((comment) => (
+                <div
+                  key={comment.id}
+                  className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3"
+                >
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    {comment.content}
+                  </p>
+                  <span className="text-xs text-blue-600 dark:text-blue-400 mt-1 block">
+                    {formatRelativeTime(comment.createdAt)}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-2">
+              <Textarea
+                placeholder="Add a comment..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                className="min-h-[80px] bg-white dark:bg-slate-700 border-blue-200 dark:border-blue-800 focus:ring-blue-500"
+              />
+              {error && (
+                <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
+              )}
+              <Button
+                onClick={handleComment}
+                disabled={isSubmitting || !newComment.trim()}
+                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white"
+              >
+                {isSubmitting ? 'Posting...' : 'Post Comment'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   )
 } 
