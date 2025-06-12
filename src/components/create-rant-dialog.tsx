@@ -34,7 +34,9 @@ export function CreateRantDialog({ open, onOpenChange, onRantCreated }: CreateRa
     try {
       setIsSubmitting(true)
       setError(null)
-      await apiClient.rants.create({ title, content })
+      // Generate a random anonymousId for the user
+      const anonymousId = Math.random().toString(36).substring(2, 15)
+      await apiClient.rants.create({ title, content, anonymousId })
       setTitle("")
       setContent("")
       onOpenChange(false)
