@@ -61,15 +61,15 @@ export default function Page() {
     }
   }
 
-  const handleRefresh = () => {
-    setSearchParams({
-      search: '',
-      reactionType: undefined,
-      sortBy: 'createdAt',
-      sortOrder: 'desc',
-    })
-    fetchRants()
-  }
+  // const handleRefresh = () => {
+  //   setSearchParams({
+  //     search: '',
+  //     reactionType: undefined,
+  //     sortBy: 'createdAt',
+  //     sortOrder: 'desc',
+  //   })
+  //   fetchRants()
+  // }
 
   useEffect(() => {
     fetchRants()
